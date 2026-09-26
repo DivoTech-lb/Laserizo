@@ -1,0 +1,12 @@
+{
+  "name": "Your Business Name",
+  "tagline": "A short tagline goes here",
+  "sections": [
+    {
+      "title": "Section one",
+      "items": [
+        { "name": "Item name", "description": "Item description", "price": 0 }
+      ]
+    }
+  ]
+}
