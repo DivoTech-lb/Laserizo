@@ -1,14 +1,14 @@
 {
   "brand": {
-    "name": "Pins Lebanon",
+    "name": "Laserizo",
     "tagline_en": "Acrylic phone stickers, engraved and cut in Lebanon.",
     "tagline_ar": "ملصقات هاتف أكريليك، محفورة ومقصوصة في لبنان.",
-    "hero_title_en": "Pins, cut sharp.",
-    "hero_title_ar": "دبابيس، مقصوصة بدقة.",
+    "hero_title_en": "Khale talphonak yehke aanak !",
+    "hero_title_ar": "Khale talphonak yehke aanak !",
     "whatsapp": "+96170631123",
-    "location_name_en": "Hamra Street, Beirut, Lebanon",
-    "location_name_ar": "شارع الحمرا، بيروت، لبنان",
-    "location_link": "https://maps.google.com/?q=Hamra+Street+Beirut"
+    "location_name_en": "Abed El Nour Street,Harit Hreik, Beirut, Lebanon",
+    "location_name_ar": "شارع عبد النور ،حارة الحريك، بيروت، لبنان",
+    "location_link": "https://maps.app.goo.gl/zmB2YtAvSmozKMuV6?g_st=ac"
   },
   "pricingTiers": [
     {
@@ -3806,94 +3806,10 @@
         "name": "Beirut",
         "items": [
           {
-            "name_en": "Beirut_001",
-            "name_ar": "Beirut_001",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_001.png"
-          },
-          {
-            "name_en": "Beirut_002",
-            "name_ar": "Beirut_002",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_002.png"
-          },
-          {
-            "name_en": "Beirut_003",
-            "name_ar": "Beirut_003",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_003.png"
-          },
-          {
-            "name_en": "Beirut_004",
-            "name_ar": "Beirut_004",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_004.png"
-          },
-          {
-            "name_en": "Beirut_005",
-            "name_ar": "Beirut_005",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_005.png"
-          },
-          {
-            "name_en": "Beirut_006",
-            "name_ar": "Beirut_006",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_006.png"
-          },
-          {
-            "name_en": "Beirut_007",
-            "name_ar": "Beirut_007",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_007.png"
-          },
-          {
-            "name_en": "Beirut_008",
-            "name_ar": "Beirut_008",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_008.png"
-          },
-          {
             "name_en": "Beirut_009",
             "name_ar": "Beirut_009",
             "price": 2,
             "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_009.png"
-          },
-          {
-            "name_en": "Beirut_010",
-            "name_ar": "Beirut_010",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_010.png"
-          },
-          {
-            "name_en": "Beirut_011",
-            "name_ar": "Beirut_011",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_011.png"
-          },
-          {
-            "name_en": "Beirut_012",
-            "name_ar": "Beirut_012",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_012.png"
-          },
-          {
-            "name_en": "Beirut_013",
-            "name_ar": "Beirut_013",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_013.png"
-          },
-          {
-            "name_en": "Beirut_014",
-            "name_ar": "Beirut_014",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_014.png"
-          },
-          {
-            "name_en": "Beirut_015",
-            "name_ar": "Beirut_015",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_015.png"
           },
           {
             "name_en": "Beirut_016",
@@ -3996,12 +3912,6 @@
             "name_ar": "Beirut_032",
             "price": 2,
             "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_032.png"
-          },
-          {
-            "name_en": "Beirut_033",
-            "name_ar": "Beirut_033",
-            "price": 2,
-            "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/Location/Beirut/Beirut_033.png"
           },
           {
             "name_en": "Beirut_034",
