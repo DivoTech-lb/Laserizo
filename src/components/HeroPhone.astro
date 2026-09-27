@@ -1,0 +1,117 @@
+---
+/* Back of a phone with an acrylic pin stuck on it, drawn to read as a solid
+   object: the phone, camera bump and pin each get real thickness from stacked
+   offset layers (the right and bottom walls), and CSS tilts the whole thing in
+   perspective so those walls face the viewer. A light band sweeps across the
+   back every few seconds, then the pin sparkles. Keyframes and the tilt live
+   in styles/pulse.css under "hero phone". */
+
+/* wall layers: [dx, dy, colour], back to front */
+const body = Array.from({ length: 14 }, (_, i) => {
+  const k = 14 - i;
+  const shade = Math.round(10 + (i / 13) * 34);
+  return { dx: k, dy: k * 0.6, fill: `rgb(${shade - 4},${shade + 2},${shade + 18})` };
+});
+const bump = Array.from({ length: 4 }, (_, i) => ({ d: (4 - i) * 1.4, fill: i < 2 ? '#070b13' : '#1a2438' }));
+const pin = Array.from({ length: 6 }, (_, i) => ({ d: (6 - i) * 1.1, fill: i < 3 ? '#062457' : '#0d3b8a' }));
+---
+<div class="phone" aria-hidden="true">
+  <svg viewBox="0 0 300 480" role="presentation" focusable="false">
+    <defs>
+      <linearGradient id="phFace" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#26324a" />
+        <stop offset=".45" stop-color="#141c2c" />
+        <stop offset="1" stop-color="#0a0f19" />
+      </linearGradient>
+      <linearGradient id="phBevel" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#ffffff" stop-opacity=".55" />
+        <stop offset=".35" stop-color="#9fc4ff" stop-opacity=".18" />
+        <stop offset="1" stop-color="#ffffff" stop-opacity=".05" />
+      </linearGradient>
+      <linearGradient id="phSheen" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#ffffff" stop-opacity=".07" />
+        <stop offset=".5" stop-color="#ffffff" stop-opacity="0" />
+      </linearGradient>
+      <radialGradient id="lensGlass" cx=".38" cy=".35" r=".75">
+        <stop offset="0" stop-color="#3b5b9a" />
+        <stop offset=".45" stop-color="#0b1426" />
+        <stop offset="1" stop-color="#02040a" />
+      </radialGradient>
+      <linearGradient id="lensRing" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#8ea3c7" />
+        <stop offset=".5" stop-color="#2a3650" />
+        <stop offset="1" stop-color="#5b6b8a" />
+      </linearGradient>
+      <radialGradient id="pinFace" cx=".32" cy=".28" r=".85">
+        <stop offset="0" stop-color="#8ff1ff" />
+        <stop offset=".35" stop-color="#2fa6ff" />
+        <stop offset=".75" stop-color="#1e5fe0" />
+        <stop offset="1" stop-color="#123f9e" />
+      </radialGradient>
+      <linearGradient id="glintBand" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#fff" stop-opacity="0" />
+        <stop offset=".5" stop-color="#fff" stop-opacity=".26" />
+        <stop offset="1" stop-color="#fff" stop-opacity="0" />
+      </linearGradient>
+      <clipPath id="phClip"><rect x="40" y="24" width="190" height="400" rx="38" /></clipPath>
+      <filter id="phBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10" /></filter>
+      <filter id="phSoft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" /></filter>
+    </defs>
+
+    <!-- floor shadow -->
+    <ellipse cx="150" cy="458" rx="110" ry="13" fill="#061446" opacity=".45" filter="url(#phBlur)" />
+
+    <!-- body walls (right + bottom), then the back face -->
+    {body.map((l) => (
+      <rect x={40 + l.dx} y={24 + l.dy} width="190" height="400" rx="38" fill={l.fill} />
+    ))}
+    <rect x="40" y="24" width="190" height="400" rx="38" fill="url(#phFace)" />
+    <rect x="40" y="24" width="190" height="400" rx="38" fill="url(#phSheen)" />
+    <rect x="41" y="25" width="188" height="398" rx="37" fill="none" stroke="url(#phBevel)" stroke-width="2" />
+
+    <!-- raised camera bump -->
+    {bump.map((l) => (
+      <rect x={60 + l.d} y={46 + l.d * 0.6} width="84" height="92" rx="24" fill={l.fill} />
+    ))}
+    <rect x="60" y="46" width="84" height="92" rx="24" fill="#18202f" />
+    <rect x="60.5" y="46.5" width="83" height="91" rx="23.5" fill="none" stroke="#ffffff" stroke-opacity=".16" />
+    {[[84, 71], [84, 113]].map(([cx, cy]) => (
+      <g>
+        <circle cx={cx + 1.5} cy={cy + 1.5} r="16" fill="#03050a" />
+        <circle cx={cx} cy={cy} r="16" fill="url(#lensRing)" />
+        <circle cx={cx} cy={cy} r="12.5" fill="url(#lensGlass)" />
+        <circle cx={cx} cy={cy} r="5" fill="#0a1a38" stroke="#1d3a70" stroke-width="1" />
+        <ellipse cx={cx - 4.5} cy={cy - 5} rx="3.6" ry="2.4" fill="#fff" opacity=".7" transform={`rotate(-35 ${cx - 4.5} ${cy - 5})`} />
+      </g>
+    ))}
+    <circle cx="122" cy="92" r="6" fill="url(#lensRing)" />
+    <circle cx="122" cy="92" r="3.6" fill="#f5e7c4" opacity=".85" />
+    <circle cx="122" cy="116" r="3" fill="#0a1426" stroke="#2a3650" />
+
+    <!-- the pin: acrylic disc with thickness -->
+    <g class="pin">
+      <circle cx="143" cy="283" r="55" fill="#020617" opacity=".55" filter="url(#phSoft)" />
+      {pin.map((l) => (
+        <circle cx={135 + l.d} cy={272 + l.d * 0.6} r="52" fill={l.fill} />
+      ))}
+      <circle cx="135" cy="272" r="52" fill="url(#pinFace)" />
+      <circle cx="135" cy="272" r="51" fill="none" stroke="#d9f8ff" stroke-opacity=".75" stroke-width="2" />
+      <circle cx="135" cy="272" r="40" fill="none" stroke="#e8fbff" stroke-opacity=".35" stroke-width="1.2" stroke-dasharray="3 4" />
+      <!-- engraved star: dark cut, then lit face -->
+      <path d="M135 243 l7.9 17 18.6 2.2 -13.8 12.7 3.7 18.4 -16.4-9.2 -16.4 9.2 3.7-18.4 -13.8-12.7 18.6-2.2z"
+        fill="#0b2f73" opacity=".55" transform="translate(1.6 1.6)" />
+      <path d="M135 243 l7.9 17 18.6 2.2 -13.8 12.7 3.7 18.4 -16.4-9.2 -16.4 9.2 3.7-18.4 -13.8-12.7 18.6-2.2z"
+        fill="#eefcff" fill-opacity=".92" />
+      <!-- specular highlight -->
+      <ellipse cx="114" cy="248" rx="20" ry="9" fill="#fff" opacity=".45" transform="rotate(-35 114 248)" filter="url(#phSoft)" />
+    </g>
+
+    <!-- periodic glint across the whole back -->
+    <g clip-path="url(#phClip)">
+      <polygon class="glint" points="0,-20 50,-20 -44,470 -94,470" fill="url(#glintBand)" />
+    </g>
+
+    <!-- sparkle on the pin's rim, right after the glint passes -->
+    <path class="sparkle" d="M172 232 l3 9 9 3 -9 3 -3 9 -3-9 -9-3 9-3z" fill="#fff" />
+  </svg>
+</div>

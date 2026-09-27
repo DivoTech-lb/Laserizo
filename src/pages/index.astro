@@ -1,116 +1,153 @@
 ---
 import business from '../data/business.json';
+import I18N, { DEFAULT_LANG } from '../lib/i18n.js';
+import { normalizeTiers, tierRanges } from '../lib/pricing.js';
+import HeroPhone from '../components/HeroPhone.astro';
+import '../styles/pulse.css';
+
+const { brand, categories } = business;
+/* Pre-rendered text is in the default language, so there is no flash of
+   the other language before the script runs. */
+const tx = I18N[DEFAULT_LANG];
+const bf = (name) => brand[`${name}_${DEFAULT_LANG}`] || brand[`${name}_en`];
+/* Build-time figures for the hero stat chips. */
+const cities = business.location?.cities ?? [];
+const itemCount = [...categories, ...cities].reduce((a, c) => a + (c.items?.length ?? 0), 0);
+const catCount = categories.length + (business.location ? 1 : 0);
+const tiers = normalizeTiers(business.pricingTiers);
+const minUnit = Math.min(...tiers.map((t) => t.unitUsd)).toFixed(2);
+/* the bracket where delivery is free, as it really applies (e.g. "5–49") */
+const free = tierRanges(tiers).find((t) => t.deliveryUsd === 0);
+const freeLabel = free ? (free.from === free.to ? `${free.from}` : `${free.from}–${free.to}`) : '';
 ---
 <!doctype html>
-<html lang="en">
+<html lang={DEFAULT_LANG} dir={tx.dir}>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{business.name}</title>
-  <meta name="description" content={business.tagline} />
+  <title>{brand.name}</title>
+  <meta name="description" content={bf('tagline')} />
+  <meta name="theme-color" content="#05070b" />
+  <!-- apply a saved light/dark choice before first paint (no flash) -->
+  <script is:inline>
+    try { var t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Mono:wght@400;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <header class="hero">
-    <h1>{business.name}</h1>
-    <p class="tagline">{business.tagline}</p>
-  </header>
+<a class="sr" href="#main">Skip to content</a>
 
-  <main>
-    {business.sections.map((section) => (
-      <section class="section">
-        <h2>{section.title}</h2>
-        <ul>
-          {section.items.map((item) => (
-            <li class="item">
-              <div class="item-line">
-                <span class="item-name">{item.name}</span>
-                <span class="leader"></span>
-                <span class="item-price">${item.price}</span>
-              </div>
-              {item.description && <p class="item-desc">{item.description}</p>}
-            </li>
-          ))}
-        </ul>
-      </section>
-    ))}
-  </main>
+<header class="hat">
+  <div class="hat__in">
+    <a class="logo" href="#/"><span class="glowdot"></span><b>{brand.name}</b></a>
+    <div class="hat__end">
+      <button class="chipbtn themebtn" id="themeBtn" type="button"><svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"/></g></svg><svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.5 14.6A8.5 8.5 0 0 1 9.4 3.5a8.5 8.5 0 1 0 11.1 11.1Z"/></svg></button>
+      <button class="chipbtn" id="langBtn">{tx.lang}</button>
+      <button class="chipbtn chipbtn--cart" id="cartBtn"><span data-t="cart">{tx.cart}</span> <b id="cartN">0</b></button>
+    </div>
+  </div>
+  <div class="searchwrap">
+    <div class="searchbox">
+      <span class="searchbox__g">⌕</span>
+      <input type="search" id="q" autocomplete="off" data-t-ph="searchPlaceholder" placeholder={tx.searchPlaceholder} aria-label={tx.search} />
+      <button class="searchbox__x" id="clearQ" hidden aria-label="Clear">×</button>
+    </div>
+  </div>
+</header>
 
-  <style>
-    :root {
-      --bg: #ffffff;
-      --text: #1a1a1a;
-      --muted: #666666;
-      --accent: #333333;
-      --line: #dddddd;
-    }
+<!-- Both rails are filled from the one categories array, split by `type`. -->
+<nav class="rails" aria-label={tx.categories}>
+  <div class="chiprail chiprail--normal" id="railNormal"></div>
+  <div class="chiprail chiprail--custom" id="railCustom"></div>
+  <div class="crumbline" id="crumbline" hidden></div>
+</nav>
 
-    * { box-sizing: border-box; }
+<section class="hero" id="hero">
+  <div class="hero__card">
+    <div class="hero__copy">
+      <h1 data-brand="hero_title">{bf('hero_title')}</h1>
+      <p><span data-brand="tagline">{bf('tagline')}</span> <span data-t="hero3">{tx.hero3}</span></p>
+      <div class="hero__cta">
+        <button class="hbtn" data-go="categories" data-t="shopNow">{tx.shopNow}</button>
+        <button class="hbtn hbtn--ghost" data-open="rules" data-t="bulkRules">{tx.bulkRules}</button>
+      </div>
+    </div>
+    <HeroPhone />
+    <div class="stats">
+      <div class="stat"><b>{itemCount}</b><span data-t="statDesigns">{tx.statDesigns}</span></div>
+      <div class="stat"><b>{catCount}</b><span data-t="statCats">{tx.statCats}</span></div>
+      <div class="stat"><b>${minUnit}</b><span data-t="statFrom">{tx.statFrom}</span></div>
+      {freeLabel && <div class="stat"><b>{freeLabel}</b><span data-t="statFree">{tx.statFree}</span></div>}
+    </div>
 
-    body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      line-height: 1.5;
-    }
+  </div>
+</section>
 
-    .hero {
-      text-align: center;
-      padding: 4rem 1.5rem 2rem;
-    }
+<main id="main"></main>
 
-    .hero h1 {
-      font-size: clamp(2rem, 5vw, 2.8rem);
-      margin: 0;
-    }
+<footer class="base" id="base"></footer>
 
-    .tagline {
-      color: var(--muted);
-      margin-top: 0.5rem;
-    }
+<nav class="tabs" id="tabs"></nav>
 
-    main {
-      max-width: 640px;
-      margin: 0 auto;
-      padding: 1rem 1.5rem 4rem;
-    }
+<!-- cart bottom sheet -->
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet__scrim" data-close></div>
+  <section class="sheet__box" role="dialog" aria-modal="true" aria-label={tx.cart}>
+    <div class="sheet__grip"></div>
+    <header class="sheet__top"><b data-t="cart">{tx.cart}</b><button class="chipbtn" data-close aria-label={tx.close}>×</button></header>
+    <div class="sheet__body" id="sheetBody"></div>
+    <div class="sheet__foot" id="sheetFoot"></div>
+  </section>
+</div>
 
-    .section {
-      margin-bottom: 2.5rem;
-    }
+<!-- "Create your own" popup: stays open after each Add to cart -->
+<div class="modal" id="maker" hidden>
+  <div class="modal__scrim" data-close></div>
+  <section class="modal__box" role="dialog" aria-modal="true" aria-labelledby="makerTitle">
+    <header class="modal__top">
+      <div><small data-t="createOwn">{tx.createOwn}</small><h2 id="makerTitle"></h2></div>
+      <button class="chipbtn" data-close aria-label={tx.close}>×</button>
+    </header>
+    <div class="modal__body">
+      <form id="makerForm" novalidate>
+        <label class="fl"><span data-t="engraveText">{tx.engraveText}</span>
+          <input id="mkText" name="text" maxlength="40" autocomplete="off" data-t-ph="engravePlaceholder" placeholder={tx.engravePlaceholder} />
+          <em data-err="text"></em></label>
+        <div class="fl"><span data-t="qty">{tx.qty}</span>
+          <div class="step step--mk">
+            <button type="button" data-mk="-1" aria-label="-">−</button>
+            <input id="mkQty" name="qty" type="number" inputmode="numeric" min="1" aria-label={tx.qty} />
+            <button type="button" data-mk="1" aria-label="+">+</button>
+          </div>
+          <em data-err="qty"></em></div>
+        <button class="btn btn--w" type="submit" data-t="addToCart">{tx.addToCart}</button>
+      </form>
+      <div id="makerList"></div>
+    </div>
+  </section>
+</div>
 
-    .section h2 {
-      font-size: 1.2rem;
-      border-bottom: 1px solid var(--line);
-      padding-bottom: 0.5rem;
-      margin-bottom: 1rem;
-    }
+<!-- bulk pricing rules popup (read-only) -->
+<div class="modal modal--rules" id="rules" hidden>
+  <div class="modal__scrim" data-close></div>
+  <section class="modal__box" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+    <header class="modal__top"><h2 id="rulesTitle" data-t="bulkTitle">{tx.bulkTitle}</h2>
+      <button class="chipbtn" data-close aria-label={tx.close}>×</button></header>
+    <div class="modal__body" id="rulesBody"></div>
+  </section>
+</div>
 
-    ul { list-style: none; margin: 0; padding: 0; }
+<div class="beep" id="beep" role="status" aria-live="polite"></div>
 
-    .item { margin-bottom: 1rem; }
+<!-- floating WhatsApp contact, always visible (number from business.json) -->
+<a class="wa-fab" id="waFab" href={`https://wa.me/${String(brand.whatsapp).replace(/\D/g, '')}`} target="_blank" rel="noopener" aria-label="WhatsApp">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.64.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.08c.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35M12.05 21.5h-.01a9.4 9.4 0 0 1-4.8-1.31l-.34-.2-3.57.93.95-3.48-.22-.36a9.4 9.4 0 0 1-1.44-5.02c0-5.2 4.23-9.43 9.44-9.43 2.52 0 4.89.98 6.67 2.77a9.37 9.37 0 0 1 2.76 6.67c0 5.2-4.24 9.43-9.44 9.43m8.03-17.46A11.28 11.28 0 0 0 12.05.71C5.8.71.7 5.8.7 12.06c0 2 .52 3.95 1.52 5.67L.6 23.29l5.7-1.5a11.3 11.3 0 0 0 5.43 1.38h.01c6.25 0 11.35-5.09 11.35-11.35 0-3.03-1.18-5.88-3.32-8.02"/></svg>
+</a>
 
-    .item-line {
-      display: flex;
-      align-items: baseline;
-      gap: 0.5rem;
-    }
-
-    .item-name { font-weight: 500; }
-
-    .leader {
-      flex: 1;
-      border-bottom: 1px dotted var(--line);
-      transform: translateY(-4px);
-    }
-
-    .item-price { color: var(--accent); }
-
-    .item-desc {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin: 0.25rem 0 0;
-    }
-  </style>
+<script>
+  import '../lib/app.js';
+</script>
 </body>
 </html>
