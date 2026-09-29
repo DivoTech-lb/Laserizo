@@ -3060,10 +3060,16 @@
           "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/Laserizo/ab7a8a70-ec37-457a-b8d5-a62f3e961360-9C10.png"
         },
         {
-          "name_en": "",
-          "name_ar": "",
-          "price": 0,
-          "photo": ""
+          "name_en": "19A1",
+          "name_ar": "19A1",
+          "price": 2,
+          "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/Laserizo/37d4c9a2-2027-490c-a9f8-1a8a33cc0c38-19A1.png"
+        },
+        {
+          "name_en": "19A2",
+          "name_ar": "19A2",
+          "price": 2,
+          "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/Laserizo/f0a8697d-db39-4525-a389-7a229018c407-19A2.png"
         }
       ]
     },
