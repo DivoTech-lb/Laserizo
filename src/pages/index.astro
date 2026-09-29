@@ -28,6 +28,7 @@ const freeLabel = free ? (free.from === free.to ? `${free.from}` : `${free.from}
   <title>{brand.name}</title>
   <meta name="description" content={bf('tagline')} />
   <meta name="theme-color" content="#05070b" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <!-- apply a saved light/dark choice before first paint (no flash) -->
   <script is:inline>
     try { var t = localStorage.getItem('theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
