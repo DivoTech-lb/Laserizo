@@ -1,117 +1,211 @@
 ---
-/* Back of a phone with an acrylic pin stuck on it, drawn to read as a solid
-   object: the phone, camera bump and pin each get real thickness from stacked
-   offset layers (the right and bottom walls), and CSS tilts the whole thing in
-   perspective so those walls face the viewer. A light band sweeps across the
-   back every few seconds, then the pin sparkles. Keyframes and the tilt live
-   in styles/pulse.css under "hero phone". */
+/* Back of an iPhone 17 Pro Max (white / Silver), drawn to read as a solid
+   object: the aluminium body and the full-width camera plateau get real
+   thickness from stacked offset layers (right and bottom walls), and CSS tilts
+   the whole thing in perspective so those walls face the viewer. Recognisable
+   17 Pro details: the plateau spanning the whole top, three large lenses in a
+   triangle on its left, flash + LiDAR on its right, and the glass panel in the
+   lower back.
 
-/* wall layers: [dx, dy, colour], back to front */
-const body = Array.from({ length: 14 }, (_, i) => {
-  const k = 14 - i;
-  const shade = Math.round(10 + (i / 13) * 34);
-  return { dx: k, dy: k * 0.6, fill: `rgb(${shade - 4},${shade + 2},${shade + 18})` };
+   On the glass panel sits an acrylic sticker that changes every 3 seconds.
+   The stickers are every image in src/assets/hero-pins/ (sorted by file name,
+   so prefix names with 1-, 2-, … to set the order). Each is shown on a white
+   acrylic plate sized to the image, with an edge, a shadow and a gloss; the
+   images' own white backgrounds become the plate.
+
+   A light band sweeps across the back every few seconds, then the sticker
+   sparkles. Keyframes, the tilt, the size and the swap transition live in
+   styles/pulse.css under "hero phone". */
+
+/* White (Silver) palette — swap these to recolour the phone.
+   Cosmic Orange was: hi #ffa45c, mid #f07a2e, lo #c4561b, plate #ffad69→#e2672a,
+   walls [110,38,10]→[178,74,24], plateWall #a9430f, glass #f58a45→#e8702f,
+   ring #ffd3ae/#b5541c/#ffb784. */
+const C = {
+  hi: '#ffffff', mid: '#f1f3f6', lo: '#d3d8e0',      // back face gradient
+  plateHi: '#ffffff', plateLo: '#e4e8ee',            // camera plateau
+  wallFrom: [138, 145, 158], wallTo: [206, 211, 219], // body side walls (dark → light)
+  plateWall: '#b3bac6',
+  glass: ['#f8f9fb', '#e8ebf0'],                     // lower glass panel
+  glassEdge: '#9aa3b1',
+  ring: ['#ffffff', '#9ea6b3', '#e7eaef'],           // lens / flash rings
+  lensShadow: '#4a5261', mic: '#8b929e',
+  stickerShadow: '#1f2530', stickerOutline: '#c9d0da',
+};
+
+/* body walls: back to front, darker further back */
+const WALL = 14;
+const body = Array.from({ length: WALL }, (_, i) => {
+  const k = WALL - i, t = i / (WALL - 1);
+  const c = C.wallFrom.map((v, j) => Math.round(v + (C.wallTo[j] - v) * t));
+  return { dx: k, dy: k * 0.6, fill: `rgb(${c.join(',')})` };
 });
-const bump = Array.from({ length: 4 }, (_, i) => ({ d: (4 - i) * 1.4, fill: i < 2 ? '#070b13' : '#1a2438' }));
-const pin = Array.from({ length: 6 }, (_, i) => ({ d: (6 - i) * 1.1, fill: i < 3 ? '#062457' : '#0d3b8a' }));
+const plateau = Array.from({ length: 5 }, (_, i) => ({ d: (5 - i) * 1.3 }));
+
+/* the plateau outline: follows the body's top corners, softer bottom corners */
+const PLATEAU = 'M40,62 A38,38 0 0 1 78,24 H192 A38,38 0 0 1 230,62 V134 A20,20 0 0 1 210,154 H60 A20,20 0 0 1 40,134 Z';
+
+/* lenses: three in a triangle on the left, flash + LiDAR on the right */
+const lenses = [[80, 60], [80, 118], [126, 89]];
+
+/* sticker images, bundled at build time */
+const files = import.meta.glob<{ default: ImageMetadata }>('../assets/hero-pins/*.{png,jpg,jpeg,webp,avif}', { eager: true });
+const images = Object.keys(files).sort().map((k) => files[k].default);
+
+/* plate geometry, centred on the glass panel */
+const CX = 135, CY = 292;          // centre of the sticker area
+const MAX_W = 88, MAX_H = 104;     // largest image area
+const PAD = 7;                     // white margin around the image
+const DEPTH = 5;                   // acrylic edge layers
+const stickers = images.map((img, i) => {
+  const s = Math.min(MAX_W / img.width, MAX_H / img.height);
+  const iw = img.width * s, ih = img.height * s;
+  const w = iw + PAD * 2, h = ih + PAD * 2;
+  const x = CX - w / 2, y = CY - h / 2;
+  return { i, src: img.src, x, y, w, h, ix: x + PAD, iy: y + PAD, iw, ih, rx: Math.min(16, h / 4) };
+});
 ---
 <div class="phone" aria-hidden="true">
   <svg viewBox="0 0 300 480" role="presentation" focusable="false">
     <defs>
       <linearGradient id="phFace" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#26324a" />
-        <stop offset=".45" stop-color="#141c2c" />
-        <stop offset="1" stop-color="#0a0f19" />
+        <stop offset="0" stop-color={C.hi} />
+        <stop offset=".5" stop-color={C.mid} />
+        <stop offset="1" stop-color={C.lo} />
+      </linearGradient>
+      <linearGradient id="phPlate" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color={C.plateHi} />
+        <stop offset="1" stop-color={C.plateLo} />
+      </linearGradient>
+      <linearGradient id="phGlass" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color={C.glass[0]} />
+        <stop offset="1" stop-color={C.glass[1]} />
       </linearGradient>
       <linearGradient id="phBevel" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#ffffff" stop-opacity=".55" />
-        <stop offset=".35" stop-color="#9fc4ff" stop-opacity=".18" />
-        <stop offset="1" stop-color="#ffffff" stop-opacity=".05" />
+        <stop offset="0" stop-color="#ffffff" stop-opacity=".7" />
+        <stop offset=".35" stop-color="#dfe6f2" stop-opacity=".35" />
+        <stop offset="1" stop-color="#ffffff" stop-opacity=".08" />
       </linearGradient>
+      <!-- brushed-aluminium sheen -->
       <linearGradient id="phSheen" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0" stop-color="#ffffff" stop-opacity=".07" />
-        <stop offset=".5" stop-color="#ffffff" stop-opacity="0" />
+        <stop offset="0" stop-color="#ffffff" stop-opacity=".16" />
+        <stop offset=".45" stop-color="#ffffff" stop-opacity="0" />
+        <stop offset=".85" stop-color="#000000" stop-opacity=".06" />
       </linearGradient>
       <radialGradient id="lensGlass" cx=".38" cy=".35" r=".75">
-        <stop offset="0" stop-color="#3b5b9a" />
-        <stop offset=".45" stop-color="#0b1426" />
-        <stop offset="1" stop-color="#02040a" />
+        <stop offset="0" stop-color="#40588a" />
+        <stop offset=".4" stop-color="#0c1322" />
+        <stop offset="1" stop-color="#020308" />
       </radialGradient>
       <linearGradient id="lensRing" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#8ea3c7" />
-        <stop offset=".5" stop-color="#2a3650" />
-        <stop offset="1" stop-color="#5b6b8a" />
+        <stop offset="0" stop-color={C.ring[0]} />
+        <stop offset=".45" stop-color={C.ring[1]} />
+        <stop offset="1" stop-color={C.ring[2]} />
       </linearGradient>
-      <radialGradient id="pinFace" cx=".32" cy=".28" r=".85">
-        <stop offset="0" stop-color="#8ff1ff" />
-        <stop offset=".35" stop-color="#2fa6ff" />
-        <stop offset=".75" stop-color="#1e5fe0" />
-        <stop offset="1" stop-color="#123f9e" />
-      </radialGradient>
+      <linearGradient id="stkGloss" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#fff" stop-opacity=".55" />
+        <stop offset=".35" stop-color="#fff" stop-opacity=".08" />
+        <stop offset=".6" stop-color="#fff" stop-opacity="0" />
+      </linearGradient>
       <linearGradient id="glintBand" x1="0" y1="0" x2="1" y2="0">
         <stop offset="0" stop-color="#fff" stop-opacity="0" />
-        <stop offset=".5" stop-color="#fff" stop-opacity=".26" />
+        <stop offset=".5" stop-color="#fff" stop-opacity=".3" />
         <stop offset="1" stop-color="#fff" stop-opacity="0" />
       </linearGradient>
       <clipPath id="phClip"><rect x="40" y="24" width="190" height="400" rx="38" /></clipPath>
+      {stickers.map((s) => (
+        <clipPath id={`stkClip${s.i}`}><rect x={s.x} y={s.y} width={s.w} height={s.h} rx={s.rx} /></clipPath>
+      ))}
       <filter id="phBlur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10" /></filter>
-      <filter id="phSoft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" /></filter>
+      <filter id="phSoft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.5" /></filter>
     </defs>
 
     <!-- floor shadow -->
     <ellipse cx="150" cy="458" rx="110" ry="13" fill="#061446" opacity=".45" filter="url(#phBlur)" />
 
-    <!-- body walls (right + bottom), then the back face -->
+    <!-- aluminium body: side walls, then the back face -->
     {body.map((l) => (
       <rect x={40 + l.dx} y={24 + l.dy} width="190" height="400" rx="38" fill={l.fill} />
     ))}
     <rect x="40" y="24" width="190" height="400" rx="38" fill="url(#phFace)" />
     <rect x="40" y="24" width="190" height="400" rx="38" fill="url(#phSheen)" />
-    <rect x="41" y="25" width="188" height="398" rx="37" fill="none" stroke="url(#phBevel)" stroke-width="2" />
 
-    <!-- raised camera bump -->
-    {bump.map((l) => (
-      <rect x={60 + l.d} y={46 + l.d * 0.6} width="84" height="92" rx="24" fill={l.fill} />
+    <!-- glass panel in the lower back (where the sticker sits) -->
+    <rect x="62" y="194" width="146" height="196" rx="20" fill="url(#phGlass)" />
+    <rect x="62.5" y="194.5" width="145" height="195" rx="19.5" fill="none" stroke="#ffffff" stroke-opacity=".22" />
+    <rect x="62" y="194" width="146" height="196" rx="20" fill="none" stroke={C.glassEdge} stroke-opacity=".35" stroke-width="1" transform="translate(.8 .8)" />
+
+    <!-- full-width camera plateau, raised -->
+    {plateau.map((l) => (
+      <path d={PLATEAU} transform={`translate(${l.d} ${l.d * 0.6})`} fill={C.plateWall} />
     ))}
-    <rect x="60" y="46" width="84" height="92" rx="24" fill="#18202f" />
-    <rect x="60.5" y="46.5" width="83" height="91" rx="23.5" fill="none" stroke="#ffffff" stroke-opacity=".16" />
-    {[[84, 71], [84, 113]].map(([cx, cy]) => (
+    <path d={PLATEAU} fill="url(#phPlate)" />
+    <path d={PLATEAU} fill="url(#phSheen)" />
+    <path d="M60,154 H210 A20,20 0 0 0 230,134" fill="none" stroke="#ffffff" stroke-opacity=".28" stroke-width="1" />
+
+    <!-- three lenses -->
+    {lenses.map(([cx, cy]) => (
       <g>
-        <circle cx={cx + 1.5} cy={cy + 1.5} r="16" fill="#03050a" />
-        <circle cx={cx} cy={cy} r="16" fill="url(#lensRing)" />
-        <circle cx={cx} cy={cy} r="12.5" fill="url(#lensGlass)" />
-        <circle cx={cx} cy={cy} r="5" fill="#0a1a38" stroke="#1d3a70" stroke-width="1" />
-        <ellipse cx={cx - 4.5} cy={cy - 5} rx="3.6" ry="2.4" fill="#fff" opacity=".7" transform={`rotate(-35 ${cx - 4.5} ${cy - 5})`} />
+        <circle cx={cx + 2} cy={cy + 2} r="23" fill={C.lensShadow} opacity=".45" />
+        <circle cx={cx} cy={cy} r="23" fill="url(#lensRing)" />
+        <circle cx={cx} cy={cy} r="19.5" fill="#0a0d15" />
+        <circle cx={cx} cy={cy} r="16.5" fill="url(#lensGlass)" />
+        <circle cx={cx} cy={cy} r="7" fill="#08142c" stroke="#23427a" stroke-width="1.2" />
+        <circle cx={cx} cy={cy} r="2.6" fill="#1b2f57" />
+        <ellipse cx={cx - 6} cy={cy - 7} rx="5" ry="3" fill="#fff" opacity=".65" transform={`rotate(-35 ${cx - 6} ${cy - 7})`} />
       </g>
     ))}
-    <circle cx="122" cy="92" r="6" fill="url(#lensRing)" />
-    <circle cx="122" cy="92" r="3.6" fill="#f5e7c4" opacity=".85" />
-    <circle cx="122" cy="116" r="3" fill="#0a1426" stroke="#2a3650" />
+    <!-- flash, LiDAR, microphone -->
+    <circle cx="194" cy="62" r="10" fill="url(#lensRing)" />
+    <circle cx="194" cy="62" r="7.5" fill="#fbe9c8" />
+    <circle cx="194" cy="62" r="7.5" fill="none" stroke="#e6c48c" stroke-width="1" stroke-dasharray="1.5 1.5" />
+    <circle cx="194" cy="116" r="10" fill="url(#lensRing)" />
+    <circle cx="194" cy="116" r="7.5" fill="#0b0f18" />
+    <circle cx="191.5" cy="113.5" r="2" fill="#5a6e96" opacity=".7" />
+    <circle cx="170" cy="89" r="2.4" fill={C.mic} />
 
-    <!-- the pin: acrylic disc with thickness -->
-    <g class="pin">
-      <circle cx="143" cy="283" r="55" fill="#020617" opacity=".55" filter="url(#phSoft)" />
-      {pin.map((l) => (
-        <circle cx={135 + l.d} cy={272 + l.d * 0.6} r="52" fill={l.fill} />
-      ))}
-      <circle cx="135" cy="272" r="52" fill="url(#pinFace)" />
-      <circle cx="135" cy="272" r="51" fill="none" stroke="#d9f8ff" stroke-opacity=".75" stroke-width="2" />
-      <circle cx="135" cy="272" r="40" fill="none" stroke="#e8fbff" stroke-opacity=".35" stroke-width="1.2" stroke-dasharray="3 4" />
-      <!-- engraved star: dark cut, then lit face -->
-      <path d="M135 243 l7.9 17 18.6 2.2 -13.8 12.7 3.7 18.4 -16.4-9.2 -16.4 9.2 3.7-18.4 -13.8-12.7 18.6-2.2z"
-        fill="#0b2f73" opacity=".55" transform="translate(1.6 1.6)" />
-      <path d="M135 243 l7.9 17 18.6 2.2 -13.8 12.7 3.7 18.4 -16.4-9.2 -16.4 9.2 3.7-18.4 -13.8-12.7 18.6-2.2z"
-        fill="#eefcff" fill-opacity=".92" />
-      <!-- specular highlight -->
-      <ellipse cx="114" cy="248" rx="20" ry="9" fill="#fff" opacity=".45" transform="rotate(-35 114 248)" filter="url(#phSoft)" />
-    </g>
+    <!-- body bevel on top of everything flush with the edge -->
+    <rect x="41" y="25" width="188" height="398" rx="37" fill="none" stroke="url(#phBevel)" stroke-width="2" />
+
+    <!-- rotating acrylic stickers (first one visible without JS) -->
+    {stickers.map((s) => (
+      <g class={`stk${s.i === 0 ? ' on' : ''}`}>
+        <rect x={s.x + 6} y={s.y + 9} width={s.w} height={s.h} rx={s.rx} fill={C.stickerShadow} opacity=".45" filter="url(#phSoft)" />
+        {Array.from({ length: DEPTH }, (_, k) => {
+          const d = (DEPTH - k) * 1.1;
+          return <rect x={s.x + d} y={s.y + d * 0.6} width={s.w} height={s.h} rx={s.rx} fill={k < 2 ? '#9aa6bb' : '#c9d1de'} />;
+        })}
+        <rect x={s.x} y={s.y} width={s.w} height={s.h} rx={s.rx} fill="#fff" stroke={C.stickerOutline} stroke-width="1" />
+        <image href={s.src} x={s.ix} y={s.iy} width={s.iw} height={s.ih} preserveAspectRatio="xMidYMid meet" clip-path={`url(#stkClip${s.i})`} />
+        <rect x={s.x} y={s.y} width={s.w} height={s.h} rx={s.rx} fill="url(#stkGloss)" />
+        <rect x={s.x + 0.6} y={s.y + 0.6} width={s.w - 1.2} height={s.h - 1.2} rx={s.rx} fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="1.2" />
+        <g transform={`translate(${s.x + s.w - 8} ${s.y + 4})`}>
+          <path class="sparkle" d="M0 -8 l3 9 9 3 -9 3 -3 9 -3-9 -9-3 9-3z" fill="#fff" />
+        </g>
+      </g>
+    ))}
 
     <!-- periodic glint across the whole back -->
     <g clip-path="url(#phClip)">
       <polygon class="glint" points="0,-20 50,-20 -44,470 -94,470" fill="url(#glintBand)" />
     </g>
-
-    <!-- sparkle on the pin's rim, right after the glint passes -->
-    <path class="sparkle" d="M172 232 l3 9 9 3 -9 3 -3 9 -3-9 -9-3 9-3z" fill="#fff" />
   </svg>
 </div>
+
+<script>
+  /* Show the next sticker every 3 s; the outgoing one lifts away while the
+     new one pops in (see .stk in pulse.css). Paused while the tab is hidden. */
+  const stickers = Array.from(document.querySelectorAll<SVGGElement>('.phone .stk'));
+  if (stickers.length > 1) {
+    let i = 0;
+    setInterval(() => {
+      if (document.hidden) return;
+      const out = stickers[i];
+      out.classList.remove('on');
+      out.classList.add('out');
+      setTimeout(() => out.classList.remove('out'), 800);
+      i = (i + 1) % stickers.length;
+      stickers[i].classList.add('on');
+    }, 3000);
+  }
+</script>

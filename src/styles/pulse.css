@@ -122,8 +122,8 @@ html[dir="rtl"] .stat b{text-align:right}
 .stat span{font-size:14px;color:rgba(255,255,255,.9)}
 
 /* hero phone: tilted in perspective so its right and bottom walls show;
-   a light band sweeps across every ~6s, then the pin sparkles */
-.phone{position:relative;z-index:1;grid-column:2;grid-row:1 / span 2;width:clamp(120px,24vw,270px);perspective:1100px}
+   a light band sweeps across every ~6s, then the sticker sparkles */
+.phone{position:relative;z-index:1;grid-column:2;grid-row:1 / span 2;width:clamp(150px,29vw,340px);perspective:1100px}
 .phone svg{display:block;width:100%;height:auto;overflow:visible;
   transform:rotateY(-18deg) rotateX(7deg) rotateZ(3deg);transform-origin:50% 60%;
   filter:drop-shadow(0 28px 30px rgba(4,14,60,.45));transition:transform .5s cubic-bezier(.2,.8,.3,1)}
@@ -132,6 +132,12 @@ html[dir="rtl"] .stat b{text-align:right}
 @keyframes glint{0%,72%{transform:translateX(0)}90%,100%{transform:translateX(400px)}}
 .phone .sparkle{transform-box:fill-box;transform-origin:center;opacity:0;animation:sparkle 6s ease-out infinite}
 @keyframes sparkle{0%,84%{opacity:0;transform:scale(.2) rotate(0)}89%{opacity:1;transform:scale(1.15) rotate(45deg)}96%,100%{opacity:0;transform:scale(.3) rotate(90deg)}}
+/* rotating stickers (HeroPhone.astro): the new one pops in with a slight
+   tilt and overshoot, the old one lifts off and fades */
+.phone .stk{opacity:0;transform-box:fill-box;transform-origin:50% 60%;transform:translateY(14px) scale(.82) rotate(-6deg);
+  transition:opacity .45s ease,transform .75s cubic-bezier(.2,.9,.25,1.3)}
+.phone .stk.on{opacity:1;transform:none}
+.phone .stk.out{opacity:0;transform:translateY(-12px) scale(1.06) rotate(3deg);transition:opacity .4s ease,transform .5s ease-in}
 
 /* ------------------------------------------------------------------ main */
 main{position:relative;z-index:1;max-width:var(--wrap);margin:0 auto;padding:18px var(--pad) 120px}
@@ -395,7 +401,7 @@ html[dir="rtl"] .beep.on{transform:translate(50%,0)}
   .stat{padding:10px 13px}
   .stat b{font-size:17px}
   .stat span{font-size:12.5px}
-  .phone{width:104px;margin-top:6px;grid-row:1}
+  .phone{width:132px;margin-top:0;grid-row:1}
 }
 @media (max-width:560px){
   .tiles--cat{grid-template-columns:repeat(2,minmax(0,1fr))}
