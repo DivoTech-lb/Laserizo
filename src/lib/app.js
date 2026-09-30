@@ -8,7 +8,13 @@ import { createEngine } from "./engine.js";
 import { DEFAULT_LANG } from "./i18n.js";
 import { tierRanges, WHOLESALE_LIMIT } from "./pricing.js";
 
-var L = createEngine(business);
+/** localStorage if the browser allows it (it can be blocked, e.g. some
+    private modes); without it the cart simply isn't kept across refreshes. */
+function cartStorage() {
+  try { var s = window.localStorage; s.setItem("__t", "1"); s.removeItem("__t"); return s; } catch (x) { return null; }
+}
+
+var L = createEngine(business, { storage: cartStorage() });
 var $ = function (s, r) { return (r || document).querySelector(s); };
 var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 var e = L.esc;
@@ -459,13 +465,16 @@ document.addEventListener("click", function (ev) {
   if (ev.target.closest("[data-clear]")) { view.q = ""; view.shown = PAGE; render(); return; }
   if (ev.target.closest("[data-new]")) { L.clearCart(); L.goTo(""); return; }
 
-  /* Rebuild the message at the moment of sending so DATE/TIME are current. */
+  /* Rebuild the message at the moment of sending so DATE/TIME are current.
+     The order now goes to WhatsApp, so the cart (and its saved copy) is
+     emptied — deferred a tick so the link opens with the full message first. */
   var wa = ev.target.closest("#sendWa");
   if (wa) {
     var now = new Date();
     wa.href = L.whatsappUrl(now);
     var slip = $("#slip");
     if (slip) slip.textContent = L.orderText(now);
+    setTimeout(function () { L.clearCart(); L.goTo(""); beep(L.t("orderSent")); }, 0);
   }
 });
 

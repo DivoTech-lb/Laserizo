@@ -73,6 +73,7 @@ export default {
     message: "Message",
     orderSummary: "Order summary",
     sendWhatsapp: "Send order on WhatsApp",
+    orderSent: "Order sent to WhatsApp — your cart is now empty.",
     newOrder: "Start a new order",
     backToCart: "Back to cart",
 
@@ -170,6 +171,7 @@ export default {
     message: "الرسالة",
     orderSummary: "ملخّص الطلب",
     sendWhatsapp: "أرسل الطلب عبر واتساب",
+    orderSent: "أُرسل الطلب إلى واتساب — سلتك فارغة الآن.",
     newOrder: "ابدأ طلباً جديداً",
     backToCart: "العودة إلى السلة",
 

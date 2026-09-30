@@ -34,7 +34,14 @@ var SECTIONS = [
   { key: "places", title: "PLACES" }
 ];
 
-export function createEngine(business) {
+/**
+ * @param {object} business      business.json content
+ * @param {object} [opts]
+ * @param {Storage} [opts.storage]  where to keep the cart between page loads
+ *                                  (the page passes localStorage; tests pass
+ *                                  nothing, so the cart stays in memory)
+ */
+export function createEngine(business, opts) {
   "use strict";
 
   var brand = business.brand;
@@ -238,7 +245,7 @@ export function createEngine(business) {
   }
 
   /* ---------------------------------------------------------------- cart */
-  /* Two collections, in memory only:
+  /* Two collections:
        cart    — catalogue items, productId -> qty (as before)
        customs — custom-text pins,
                  [{ id, categoryId, categoryName, section, text, qty }]
@@ -246,9 +253,14 @@ export function createEngine(business) {
                  added, from where it was added
      Every cart function below takes a "line id", which is either a product id
      or a custom pin's generated id, so steppers and remove buttons work the
-     same for both kinds. */
+     same for both kinds.
+     Both are saved to opts.storage after every change and restored when the
+     engine is created, so a page refresh keeps the cart; clearCart() (called
+     once the order is sent on WhatsApp) empties the saved copy too. */
   var cart = {};
   var customs = [];
+  var store = (opts && opts.storage) || null;
+  var STORE_KEY = "pins-cart-v1";
 
   function newId() {
     if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
@@ -259,6 +271,47 @@ export function createEngine(business) {
   function customById(id) {
     for (var i = 0; i < customs.length; i++) if (customs[i].id === id) return customs[i];
     return null;
+  }
+
+  /** Save the cart. Items keep their English name next to their id: ids are
+      positions ("abraj:3"), so if business.json is edited between visits the
+      name lets restore() find the same pin again. */
+  function persist() {
+    if (!store) return;
+    try {
+      if (!Object.keys(cart).length && !customs.length) { store.removeItem(STORE_KEY); return; }
+      store.setItem(STORE_KEY, JSON.stringify({
+        v: 1,
+        items: Object.keys(cart).map(function (id) { return { id: id, name: productById(id).name_en, qty: cart[id] }; }),
+        customs: customs.map(function (c) { return { categoryId: c.categoryId, text: c.text, qty: c.qty }; })
+      }));
+    } catch (x) { /* storage full / blocked: the cart still works in memory */ }
+  }
+
+  /** Load a saved cart. Anything that no longer matches the catalogue (item
+      or category removed, bad data) is dropped silently. */
+  function restore() {
+    if (!store) return;
+    var saved;
+    try { saved = JSON.parse(store.getItem(STORE_KEY) || "null"); } catch (x) { saved = null; }
+    if (!saved || typeof saved !== "object") return;
+    (Array.isArray(saved.items) ? saved.items : []).forEach(function (s) {
+      var p = productById(s && s.id);
+      if (!p || p.name_en !== s.name) {
+        var cat = node(String(s && s.id).replace(/:\d+$/, ""));
+        p = cat ? cat.items.filter(function (i) { return i.name_en === s.name; })[0] : null;
+      }
+      var q = clampQty(s && s.qty);
+      if (p && q) cart[p.id] = clampQty((cart[p.id] || 0) + q);
+    });
+    (Array.isArray(saved.customs) ? saved.customs : []).forEach(function (s) {
+      var cat = node(s && s.categoryId);
+      var text = String((s && s.text) || "").replace(/\s+/g, " ").trim();
+      var q = clampQty(s && s.qty);
+      if (isCustom(cat) && text && q) {
+        customs.push({ id: newId(), categoryId: cat.id, categoryName: cat.name, section: sectionOf(cat), text: text, qty: q });
+      }
+    });
   }
 
   function qtyOf(id) {
@@ -277,13 +330,14 @@ export function createEngine(business) {
       if (!c) return 0;
       if (next === 0) customs.splice(customs.indexOf(c), 1); else c.qty = next;
     }
+    persist();
     emit();
     return next;
   }
   /** Change a line by delta. Returns the new qty. */
   function bump(id, delta) { return setQty(id, qtyOf(id) + delta); }
   function remove(id) { setQty(id, 0); }
-  function clearCart() { cart = {}; customs = []; emit(); }
+  function clearCart() { cart = {}; customs = []; persist(); emit(); }
 
   /** Add one custom-text pin line, tagged with its message section. Adding
       the same text again in the same category/city adds to that line's
@@ -301,12 +355,15 @@ export function createEngine(business) {
       entry = { id: newId(), categoryId: cat.id, categoryName: cat.name, section: sectionOf(cat), text: clean, qty: n };
       customs.push(entry);
     }
+    persist();
     emit();
     return entry;
   }
   function customsIn(categoryId) {
     return customs.filter(function (c) { return c.categoryId === categoryId; });
   }
+
+  restore();
 
   function count() {
     var a = Object.keys(cart).reduce(function (s, id) { return s + cart[id]; }, 0);
