@@ -6,7 +6,7 @@
 import business from "../data/business.json";
 import { createEngine } from "./engine.js";
 import { DEFAULT_LANG } from "./i18n.js";
-import { tierRanges, BULK_LIMIT } from "./pricing.js";
+import { tierRanges, WHOLESALE_LIMIT } from "./pricing.js";
 
 var L = createEngine(business);
 var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -31,18 +31,20 @@ function ph(cls, src, alt) {
   return '<div class="ph ' + (cls || "") + (src ? " ph--img" : "") + '"><span>' + e(L.t("image")) + "</span>" + img + "</div>";
 }
 
+/** Quantity stepper. Nothing chosen = an EMPTY input showing a "0"
+    placeholder (not a real 0), so the customer can type straight away. */
 function step(id) {
   var q = L.qtyOf(id);
   return '<div class="step' + (q ? " on" : "") + '" data-step="' + e(id) + '">' +
     '<button type="button" data-d="-1"' + (q === 0 ? " disabled" : "") + ' aria-label="-">−</button>' +
-    '<input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="' + q + '" aria-label="' + e(L.t("qty")) + '">' +
+    '<input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" value="' + (q || "") + '" placeholder="0" aria-label="' + e(L.t("qty")) + '">' +
     '<button type="button" data-d="1" aria-label="+">+</button></div>';
 }
 
 /** Current per-pin price for display: the rate the whole cart is at now. */
 function unitNow() {
   var t = L.totals();
-  return t.blocked ? L.t("bulkQuote") : L.usd(t.unitUsd) + " " + L.t("each");
+  return t.wholesale ? L.t("wholesale") : L.usd(t.unitUsd) + " " + L.t("each");
 }
 
 function catTile(c) {
@@ -155,15 +157,16 @@ function vSearch(q) {
   return h;
 }
 
-/** Shown in place of totals / checkout once the cart reaches BULK_LIMIT. */
-function blockBox() {
-  return '<div class="block"><h3>' + e(L.t("blockTitle")) + "</h3><p>" + e(L.t("blockBody")) + "</p>" +
-    '<a class="wa" href="' + e(L.quoteUrl()) + '" target="_blank" rel="noopener">' + e(L.t("contactWa")) + "</a></div>";
+/** Shown in place of the price totals for a wholesale order (more than
+    WHOLESALE_LIMIT catalogue pins). Checkout stays available. */
+function wholesaleBox() {
+  return '<div class="block"><h3>' + e(L.t("wholesaleTitle")) + "</h3><p>" +
+    e(L.tf("wholesaleBody", { n: WHOLESALE_LIMIT })) + "</p></div>";
 }
 
 function tierHint(t) {
   var n = t.next;
-  if (!n || n.blocked || !t.tier) return "";
+  if (!n || !t.tier) return "";
   var cheaper = n.unitUsd < t.unitUsd;
   var freer = n.deliveryUsd === 0 && t.deliveryUsd > 0;
   var key = cheaper && freer ? "nextTierBoth" : cheaper ? "nextTier" : freer ? "nextTierFree" : "";
@@ -172,7 +175,7 @@ function tierHint(t) {
 
 function sums() {
   var t = L.totals();
-  if (t.blocked) return blockBox();
+  if (t.wholesale) return wholesaleBox();
   return '<div class="sum"><span>' + t.count + " × " + e(L.usd(t.unitUsd)) + "</span><b>" + e(L.usd(t.subtotalUsd)) + "</b></div>" +
     '<div class="sum"><span>' + e(L.t("delivery")) + "</span><b" + (t.deliveryUsd === 0 ? ' class="good"' : "") + ">" +
       (t.deliveryUsd === 0 ? e(L.t("free")) : e(L.usd(t.deliveryUsd))) + "</b></div>" +
@@ -199,15 +202,14 @@ function vCart() {
   return '<div class="title"><h1>' + e(L.t("cart")) + "</h1><span>" + n + " " + e(L.t(n === 1 ? "item" : "items")) + "</span></div>" +
     '<div class="pair"><div class="card">' + cartList() + "</div>" +
     (n ? '<div class="card">' + sums() +
-      (L.totals().blocked ? "" : '<button class="btn btn--w" data-go="checkout" style="margin-top:12px">' + e(L.t("checkout")) + "</button>") +
+      '<button class="btn btn--w" data-go="checkout" style="margin-top:12px">' + e(L.t("checkout")) + "</button>" +
       '<button class="btn btn--o btn--w" data-go="" style="margin-top:8px">' + e(L.t("continue")) + "</button></div>" : "") +
     "</div>";
 }
 
 function vCheckout() {
   if (!L.count()) return vCart();
-  var t = L.totals();
-  var right = t.blocked ? '<div class="card">' + blockBox() + "</div>" :
+  var right =
     '<div class="card ok"><h2>' + e(L.t("reviewTitle")) + "</h2><p>" + e(L.t("reviewBody")) + "</p>" +
     '<a class="wa" id="sendWa" href="' + e(L.whatsappUrl()) + '" target="_blank" rel="noopener">' + e(L.t("sendWhatsapp")) + "</a>" +
     '<div class="slip__lab">' + e(L.t("message")) + '</div><pre class="slip" id="slip" dir="ltr">' + e(L.orderText()) + "</pre>" +
@@ -224,7 +226,7 @@ function rulesTable() {
     return "<tr><td>" + (t.from === t.to ? t.from : t.from + "–" + t.to) + "</td><td>" + e(L.usd(t.unitUsd)) + "</td><td>" +
       (t.deliveryUsd === 0 ? '<b class="good">' + e(L.t("free")) + "</b>" : e(L.usd(t.deliveryUsd))) + "</td></tr>";
   }).join("");
-  rows += '<tr class="over"><td>' + BULK_LIMIT + '+</td><td colspan="2">' + e(L.t("bulkOver")) + "</td></tr>";
+  rows += '<tr class="over"><td>' + (WHOLESALE_LIMIT + 1) + '+</td><td colspan="2">' + e(L.t("bulkOver")) + "</td></tr>";
   return "<p>" + e(L.t("bulkIntro")) + "</p>" +
     '<table class="rules"><thead><tr><th>' + e(L.t("colPins")) + "</th><th>" + e(L.t("colUnit")) + "</th><th>" +
     e(L.t("colDelivery")) + "</th></tr></thead><tbody>" + rows + "</tbody></table>" +
@@ -396,7 +398,7 @@ function fillSheet() {
   var n = L.count();
   $("#sheetBody").innerHTML = cartList();
   $("#sheetFoot").innerHTML = n
-    ? sums() + (L.totals().blocked ? "" : '<button class="btn btn--w" data-go="checkout" style="margin-top:12px">' + e(L.t("checkout")) + "</button>")
+    ? sums() + '<button class="btn btn--w" data-go="checkout" style="margin-top:12px">' + e(L.t("checkout")) + "</button>"
     : "";
   $("#sheetFoot").hidden = !n;
 }
@@ -479,21 +481,25 @@ document.addEventListener("input", function (ev) {
     clearTimeout(ev.target._t);
     ev.target._t = setTimeout(function () { view.shown = PAGE; render(); }, 200);
   }
-  /* Stepper typed input: digits only, applied live. An emptied field is left
-     alone until the user types again (or leaves it), so backspacing a cart
-     line does not delete it mid-edit. */
+  /* Stepper typed input: digits only, applied live. An empty field means
+     "not chosen", exactly like 0. On an item tile that is applied at once
+     (the field shows its "0" placeholder); on a cart line it is applied when
+     the field is left, so backspacing to retype a quantity does not make the
+     line — or a typed custom name — disappear mid-edit. */
   var st = ev.target.tagName === "INPUT" && ev.target.closest("[data-step]");
   if (st) {
     var digits = ev.target.value.replace(/\D/g, "");
     if (digits !== ev.target.value) ev.target.value = digits;
     if (digits !== "") L.setQty(st.getAttribute("data-step"), digits);
+    else if (!st.closest(".cl")) L.setQty(st.getAttribute("data-step"), 0);
   }
 });
 
 document.addEventListener("change", function (ev) {
   if (ev.target.id === "fs") { view.sort = ev.target.value; view.shown = PAGE; render(); }
-  /* left a stepper empty → show its real quantity again */
-  if (ev.target.value === "" && ev.target.closest("[data-step]")) render();
+  /* left a stepper empty → "not chosen", same as 0 */
+  var es = ev.target.value === "" && ev.target.closest("[data-step]");
+  if (es) L.setQty(es.getAttribute("data-step"), 0);
 });
 
 /* "Create your own" → Add to cart. Stays open and clears both fields so the
@@ -520,7 +526,7 @@ document.addEventListener("submit", function (ev) {
   if (!entry) return;
   f.elements.text.value = "";
   f.elements.qty.value = "";
-  beep(L.t("addedToCart") + ": " + entry.text + " × " + entry.qty);
+  beep(L.t("addedToCart") + ": " + entry.text + " × " + qty);
   f.elements.text.focus();
 });
 

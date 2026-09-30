@@ -18,7 +18,7 @@
    ============================================================================ */
 
 import I18N from "./i18n.js";
-import { bulkPricing, normalizeTiers, BULK_LIMIT } from "./pricing.js";
+import { bulkPricing, normalizeTiers, WHOLESALE_LIMIT } from "./pricing.js";
 
 /** Largest quantity a single line accepts; keeps typed input sane. */
 var MAX_QTY = 99999;
@@ -26,6 +26,13 @@ var MAX_QTY = 99999;
 /** Separators used by orderText(), exactly as the shop specified them. */
 var RULE_TOP = "———————————————————";
 var RULE_BOTTOM = "----------------------------------------------------------------";
+
+/** Message sections, in their fixed order in the WhatsApp text. */
+var SECTIONS = [
+  { key: "pins", title: "PINS" },
+  { key: "family", title: "FAMILY NAMES" },
+  { key: "places", title: "PLACES" }
+];
 
 export function createEngine(business) {
   "use strict";
@@ -150,6 +157,14 @@ export function createEngine(business) {
   function productsIn(c) { return c ? c.items : []; }
   function productById(id) { return productIndex[id] || null; }
   function categoryOf(p) { return p ? byId[p.categoryId] : null; }
+  /** Which message section a node's entries belong to, from its structure
+      (never its name): a Location city → "places", a custom-type category
+      (Family Names) → "family", a normal category → "pins". */
+  function sectionOf(n) {
+    if (!n) return "pins";
+    if (n.kind === "city") return "places";
+    return n.type === "custom" ? "family" : "pins";
+  }
 
   /** [{ label: "All", path: "" }, …, { label: "Beirut", path: "location/beirut" }] */
   function breadcrumb(id) {
@@ -225,7 +240,10 @@ export function createEngine(business) {
   /* ---------------------------------------------------------------- cart */
   /* Two collections, in memory only:
        cart    — catalogue items, productId -> qty (as before)
-       customs — custom-text pins, [{ id, categoryId, categoryName, text, qty }]
+       customs — custom-text pins,
+                 [{ id, categoryId, categoryName, section, text, qty }]
+                 `section` ("family" | "places") is set when the entry is
+                 added, from where it was added
      Every cart function below takes a "line id", which is either a product id
      or a custom pin's generated id, so steppers and remove buttons work the
      same for both kinds. */
@@ -267,14 +285,22 @@ export function createEngine(business) {
   function remove(id) { setQty(id, 0); }
   function clearCart() { cart = {}; customs = []; emit(); }
 
-  /** Add one custom-text pin line. Returns the entry, or null if invalid. */
+  /** Add one custom-text pin line, tagged with its message section. Adding
+      the same text again in the same category/city adds to that line's
+      quantity instead of creating a duplicate line. Returns the entry, or
+      null if invalid. */
   function addCustom(categoryId, text, qty) {
     var cat = node(categoryId);
     var clean = String(text || "").replace(/\s+/g, " ").trim();
     var n = clampQty(qty);
     if (!cat || !clean || n < 1) return null;
-    var entry = { id: newId(), categoryId: cat.id, categoryName: cat.name, text: clean, qty: n };
-    customs.push(entry);
+    var key = clean.toLowerCase();
+    var entry = customs.filter(function (c) { return c.categoryId === cat.id && c.text.toLowerCase() === key; })[0];
+    if (entry) entry.qty = clampQty(entry.qty + n);
+    else {
+      entry = { id: newId(), categoryId: cat.id, categoryName: cat.name, section: sectionOf(cat), text: clean, qty: n };
+      customs.push(entry);
+    }
     emit();
     return entry;
   }
@@ -287,16 +313,26 @@ export function createEngine(business) {
     return customs.reduce(function (s, c) { return s + c.qty; }, a);
   }
 
+  /** Pins that count toward the wholesale threshold: catalogue-cart items
+      from "normal"-type categories only (never Family Names or Places). */
+  function catalogPinQty() {
+    return Object.keys(cart).reduce(function (s, id) {
+      return sectionOf(categoryOf(productById(id))) === "pins" ? s + cart[id] : s;
+    }, 0);
+  }
+
   /** Every cart line, catalogue items first, then custom pins, each priced at
-      the cart-wide tier rate (null when the cart is at the 1000+ block). */
+      the cart-wide tier rate (null for a wholesale order) and tagged with its
+      message section. */
   function lines() {
-    var unit = bulkPricing(count(), tiers).unitUsd;
+    var unit = bulkPricing(count(), tiers, catalogPinQty()).unitUsd;
     var price = function (qty) { return unit == null ? null : Math.round(unit * 100) * qty / 100; };
 
     var items = Object.keys(cart).map(function (id) {
       var p = productById(id);
       return {
         id: id, kind: "item", product: p, qty: cart[id],
+        section: sectionOf(categoryOf(p)),
         label: nameOf(p),
         code: p.name_en,                 /* what the shop sees in the message */
         where: nameOf(categoryOf(p)),
@@ -306,6 +342,7 @@ export function createEngine(business) {
     var own = customs.map(function (c) {
       return {
         id: c.id, kind: "custom", custom: c, qty: c.qty,
+        section: c.section,
         label: c.text,
         code: c.text,
         where: nameOf(node(c.categoryId)) + " · " + t("customPin"),
@@ -315,12 +352,14 @@ export function createEngine(business) {
     return items.concat(own);
   }
 
-  /** Cart totals: the bulkPricing() result for the combined quantity, plus
-      the number of distinct lines. */
+  /** Cart totals: the bulkPricing() result for the combined quantity (and the
+      catalogue-pin count that decides wholesale), plus the number of lines. */
   function totals() {
-    var p = bulkPricing(count(), tiers);
+    var pins = catalogPinQty();
+    var p = bulkPricing(count(), tiers, pins);
     p.lines = Object.keys(cart).length + customs.length;
     p.count = p.qty;
+    p.pinQty = pins;
     return p;
   }
 
@@ -329,33 +368,52 @@ export function createEngine(business) {
 
   /** The exact text sent to the shop on WhatsApp. `when` defaults to now.
       Labels stay in English whatever the UI language, so every order the shop
-      receives reads the same way. */
+      receives reads the same way.
+
+      Item lines are grouped PINS → FAMILY NAMES → PLACES whatever order they
+      were added in, one line per cart entry with its final quantity. Section
+      titles are written only when the order spans more than one section, so a
+      single-section order reads exactly as before.
+      For a wholesale order (> WHOLESALE_LIMIT catalogue pins) the price and
+      delivery lines are replaced by a line pointing to the shop for pricing. */
   function orderText(when) {
     var d = when || new Date();
     var tt = totals();
+    var ls = lines();
+    var groups = SECTIONS.map(function (s) {
+      return { title: s.title, lines: ls.filter(function (l) { return l.section === s.key; }) };
+    }).filter(function (g) { return g.lines.length; });
+    var titled = groups.length > 1;
+
     var L = [];
     L.push(pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + "/" + d.getFullYear());
     L.push(pad(d.getHours()) + ":" + pad(d.getMinutes()));
     L.push("");
     L.push(RULE_TOP);
     L.push("");
-    lines().forEach(function (l) { L.push(l.code + "  " + l.qty); });
+    groups.forEach(function (g, gi) {
+      if (titled) {
+        if (gi) L.push("");
+        L.push(g.title);
+      }
+      g.lines.forEach(function (l) { L.push(l.code + "  " + l.qty); });
+    });
     L.push("");
     L.push(RULE_BOTTOM);
     L.push("total number of items: " + tt.count);
-    L.push("total price: " + usd(tt.totalUsd));
-    L.push("delivery: " + (tt.deliveryUsd === 0 ? "Free" : usd(tt.deliveryUsd)));
+    if (tt.wholesale) {
+      L.push("total price: wholesale order (more than " + WHOLESALE_LIMIT + " pins)");
+      L.push("pricing: contact " + brand.name + " directly on WhatsApp " + brand.whatsapp);
+    } else {
+      L.push("total price: " + usd(tt.totalUsd));
+      L.push("delivery: " + (tt.deliveryUsd === 0 ? "Free" : usd(tt.deliveryUsd)));
+    }
     return L.join("\n");
   }
 
   function waNumber() { return String(brand.whatsapp || "").replace(/\D/g, ""); }
   function whatsappUrl(when) {
     return "https://wa.me/" + waNumber() + "?text=" + encodeURIComponent(orderText(when));
-  }
-  /** Plain "please quote me" link used when the cart hits BULK_LIMIT. */
-  function quoteUrl() {
-    return "https://wa.me/" + waNumber() + "?text=" +
-      encodeURIComponent(tf("quoteMsg", { brand: brand.name, n: count() }));
   }
 
   /* ----------------------------------------------------------- utilities */
@@ -378,7 +436,7 @@ export function createEngine(business) {
   return {
     brand: brand,
     totalsInfo: totalsInfo,
-    BULK_LIMIT: BULK_LIMIT,
+    WHOLESALE_LIMIT: WHOLESALE_LIMIT,
     /* language */
     t: t, tf: tf, getLang: getLang, setLang: setLang, toggleLang: toggleLang, dir: dir, isRtl: isRtl,
     field: field, nameOf: nameOf, onChange: onChange, emit: emit,
@@ -395,9 +453,9 @@ export function createEngine(business) {
     /* cart */
     qtyOf: qtyOf, bump: bump, setQty: setQty, remove: remove, clearCart: clearCart,
     addCustom: addCustom, customsIn: customsIn,
-    lines: lines, count: count, totals: totals,
+    lines: lines, count: count, catalogPinQty: catalogPinQty, totals: totals, sectionOf: sectionOf,
     /* order */
-    orderText: orderText, whatsappUrl: whatsappUrl, quoteUrl: quoteUrl,
+    orderText: orderText, whatsappUrl: whatsappUrl,
     /* misc */
     esc: esc, parseHash: parseHash, goTo: goTo
   };

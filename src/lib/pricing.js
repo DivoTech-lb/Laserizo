@@ -18,9 +18,11 @@
    popup and the build-time hero stats all read from these functions.
    ============================================================================ */
 
-/** At this many pins or more, normal checkout is blocked: the customer is
-    asked to contact the shop on WhatsApp for a quote instead. */
-export const BULK_LIMIT = 1000;
+/** Wholesale threshold, in PINS (a count, never dollars). When the cart holds
+    MORE than this many catalogue pins — items from "normal"-type categories
+    only; Family Names and Places never count — the order is wholesale: prices
+    are not shown and the shop quotes directly. Checkout is NOT blocked. */
+export const WHOLESALE_LIMIT = 1000;
 
 /** Fallback table — identical to business.json "pricingTiers". */
 export const TIERS = [
@@ -47,12 +49,12 @@ export function normalizeTiers(list) {
 
 /** The quantities each tier ACTUALLY applies to under the highest-min rule:
     from its own `min` up to one below the next tier's `min` (the last tier
-    runs up to BULK_LIMIT - 1). Used for display, so overlapping `max` values
+    runs up to WHOLESALE_LIMIT). Used for display, so overlapping `max` values
     never show as overlapping ranges. */
 export function tierRanges(tiers) {
   var list = normalizeTiers(tiers);
   return list.map(function (t, i) {
-    var to = list[i + 1] ? list[i + 1].min - 1 : BULK_LIMIT - 1;
+    var to = list[i + 1] ? list[i + 1].min - 1 : WHOLESALE_LIMIT;
     return Object.assign({ from: t.min, to: to }, t);
   });
 }
@@ -68,37 +70,41 @@ export function tierFor(qty, tiers) {
 /**
  * Price an entire cart from its total pin count.
  *
- * @param {number} totalQty  sum of every line's quantity, both collections
- * @param {Array}  [tiers]   tier table; defaults to TIERS
+ * @param {number} totalQty         sum of every line's quantity, both collections
+ *                                   (chooses the tier, as before)
+ * @param {Array}  [tiers]          tier table; defaults to TIERS
+ * @param {number} [catalogPinQty]  pins from "normal"-type categories only;
+ *                                   decides wholesale (> WHOLESALE_LIMIT)
  * @returns {{
  *   qty: number,
- *   blocked: boolean,        true at BULK_LIMIT+ — no price, contact on WhatsApp
- *   tier: object|null,       the matching tier (null when empty or blocked)
+ *   wholesale: boolean,      catalogPinQty > WHOLESALE_LIMIT — prices hidden
+ *   tier: object|null,       the matching tier (null when empty or wholesale)
  *   unitUsd: number|null,    price applied to every pin in the cart
  *   subtotalUsd: number|null,
  *   deliveryUsd: number|null,
  *   totalUsd: number|null,   subtotal + delivery
  *   next: object|null        the next tier up, with `need` = pins still to add;
- *                            { blocked: true } when the next step is BULK_LIMIT
+ *                            null on the last tier and for wholesale
  * }}
  */
-export function bulkPricing(totalQty, tiers) {
+export function bulkPricing(totalQty, tiers, catalogPinQty) {
   var list = normalizeTiers(tiers);
   var qty = Math.max(0, Math.floor(Number(totalQty) || 0));
 
   /* Empty cart: nothing to pay, but expose the entry-level rate for display. */
   if (qty === 0) {
     return {
-      qty: 0, blocked: false, tier: null,
+      qty: 0, wholesale: false, tier: null,
       unitUsd: list[0].unitUsd, subtotalUsd: 0, deliveryUsd: 0, totalUsd: 0,
       next: Object.assign({ need: list[0].min }, list[0])
     };
   }
 
-  /* 1000+: no automatic price at all. */
-  if (qty >= BULK_LIMIT) {
+  /* Wholesale (> 1000 catalogue pins): the order still goes through, but no
+     price is computed — the shop quotes it directly. */
+  if ((Number(catalogPinQty) || 0) > WHOLESALE_LIMIT) {
     return {
-      qty: qty, blocked: true, tier: null,
+      qty: qty, wholesale: true, tier: null,
       unitUsd: null, subtotalUsd: null, deliveryUsd: null, totalUsd: null,
       next: null
     };
@@ -112,13 +118,11 @@ export function bulkPricing(totalQty, tiers) {
   var delCents = Math.round(tier.deliveryUsd * 100);
 
   var up = list[hit.index + 1];
-  var next = up
-    ? Object.assign({ need: up.min - qty }, up)
-    : { need: BULK_LIMIT - qty, blocked: true };
+  var next = up ? Object.assign({ need: up.min - qty }, up) : null;
 
   return {
     qty: qty,
-    blocked: false,
+    wholesale: false,
     tier: tier,
     unitUsd: tier.unitUsd,
     subtotalUsd: subCents / 100,

@@ -37,7 +37,7 @@ export default {
     of: "of",
     image: "Image",
     each: "each",
-    bulkQuote: "Bulk quote",
+    wholesale: "Wholesale price",
 
     createOwn: "Create your own",
     createOwnHint: "Type any name — we engrave it for you.",
@@ -76,10 +76,8 @@ export default {
     newOrder: "Start a new order",
     backToCart: "Back to cart",
 
-    blockTitle: "1,000+ pins is a bulk order",
-    blockBody: "Orders of 1,000 pins or more are quoted directly. Message us on WhatsApp and we will price it for you.",
-    contactWa: "Message us on WhatsApp",
-    quoteMsg: "Hello {brand}, I'd like a quote for {n} pins.",
+    wholesaleTitle: "Wholesale order",
+    wholesaleBody: "More than {n} pins is a wholesale order. Send it on WhatsApp as usual and we will reply with your price.",
 
     hero3: "Browse, add, send your order on WhatsApp. No account, no sign-up.",
     shopNow: "Browse the catalogue",
@@ -94,7 +92,7 @@ export default {
     colPins: "Total pins",
     colUnit: "Per pin",
     colDelivery: "Delivery",
-    bulkOver: "Contact us on WhatsApp",
+    bulkOver: "Wholesale — we quote you on WhatsApp",
     bulkNote: "Delivery is free within Beirut for 5+ items, and free all over Lebanon for 10+ items.",
 
     deliveryInfo: "Bulk pricing",
@@ -136,7 +134,7 @@ export default {
     of: "من",
     image: "صورة",
     each: "للقطعة",
-    bulkQuote: "سعر الجملة",
+    wholesale: "سعر الجملة",
 
     createOwn: "صمّم بنفسك",
     createOwnHint: "اكتب أي اسم — ونحفره لك.",
@@ -175,10 +173,8 @@ export default {
     newOrder: "ابدأ طلباً جديداً",
     backToCart: "العودة إلى السلة",
 
-    blockTitle: "١٠٠٠ قطعة أو أكثر طلب جملة",
-    blockBody: "الطلبات من ١٠٠٠ قطعة وما فوق نسعّرها مباشرة. راسلنا عبر واتساب وسنرسل لك السعر.",
-    contactWa: "راسلنا عبر واتساب",
-    quoteMsg: "مرحباً {brand}، أريد سعراً لـ {n} قطعة.",
+    wholesaleTitle: "طلب جملة",
+    wholesaleBody: "أكثر من {n} قطعة يُعتبر طلب جملة. أرسل طلبك عبر واتساب كالمعتاد وسنرد عليك بالسعر.",
 
     hero3: "تصفّح، أضف، وأرسل طلبك عبر واتساب. بلا حساب وبلا تسجيل.",
     shopNow: "تصفّح الكتالوج",
@@ -193,7 +189,7 @@ export default {
     colPins: "عدد القطع",
     colUnit: "سعر القطعة",
     colDelivery: "التوصيل",
-    bulkOver: "تواصل معنا عبر واتساب",
+    bulkOver: "جملة — نرسل لك السعر عبر واتساب",
     bulkNote: "التوصيل مجاني داخل بيروت لـ ٥ قطع وأكثر، ومجاني إلى كل لبنان لـ ١٠ قطع وأكثر.",
 
     deliveryInfo: "أسعار الجملة",
