@@ -1246,6 +1246,12 @@
           "name_ar": "5C7",
           "price": 2,
           "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/DIN/5C7.png"
+        },
+        {
+          "name_en": "18C10",
+          "name_ar": "18C10",
+          "price": 2,
+          "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/Laserizo/b39ba034-d6b3-4cef-ad32-c7c0f711c62b-18C10.png"
         }
       ]
     },
