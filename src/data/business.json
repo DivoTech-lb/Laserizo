@@ -3538,6 +3538,12 @@
           "name_ar": "8C6",
           "price": 2,
           "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/pins-client/SOBBER/8C6.png"
+        },
+        {
+          "name_en": "test",
+          "name_ar": "",
+          "price": 2,
+          "photo": "https://sfnvevtnofjnrofysshz.supabase.co/storage/v1/object/public/business-images/Laserizo/ae0792e5-c63d-4452-b299-51c13019d6eb.jpg"
         }
       ]
     },
