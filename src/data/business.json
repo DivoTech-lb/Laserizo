@@ -26,31 +26,31 @@
     {
       "min": 50,
       "max": 99,
-      "unitUsd": 0.8,
+      "unitUsd": 1,
       "deliveryUsd": 5
     },
     {
       "min": 100,
       "max": 199,
-      "unitUsd": 0.5,
+      "unitUsd": 0.6,
       "deliveryUsd": 5
     },
     {
       "min": 200,
       "max": 299,
-      "unitUsd": 0.4,
+      "unitUsd": 0.5,
       "deliveryUsd": 5
     },
     {
       "min": 300,
       "max": 599,
-      "unitUsd": 0.35,
+      "unitUsd": 0.4,
       "deliveryUsd": 5
     },
     {
       "min": 600,
       "max": 999,
-      "unitUsd": 0.3,
+      "unitUsd": -0.65,
       "deliveryUsd": 5
     }
   ],
